@@ -1,0 +1,35 @@
+body {
+    background-color: cadetblue;
+    margin: 0;
+}
+
+#app {
+    background-color: indianred;
+}
+
+#windows-container {
+    background-color: goldenrod;
+    height: 100%;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-around;
+    align-items: flex-start;
+}
+
+#preview-window, #crop-window {
+    width: 49%;
+    height: 48vh;
+    margin: 5px;
+    flex-grow: 1;
+    flex-shrink: 0;
+    background-color: mistyrose;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#crop-canvas, #preview-canvas {
+    background-color: darkslateblue;
+    max-height: 100%;
+    max-width: 100%;
+}
