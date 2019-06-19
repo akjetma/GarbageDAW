@@ -34,27 +34,6 @@
 (defonce source-image (reagent/atom nil))
 (defonce crop-region (reagent/atom nil))
 
-(def pixels-per-second 1)
-(def num-channels 2)
-
-(defn img-data->audio-old
-  [audio-ctx img-data]
-  (let [frames-per-pixel (js/Math.floor (/ (.-sampleRate audio-ctx) pixels-per-second))
-        audio-buffer (.createBuffer audio-ctx num-channels 
-                                    (* frames-per-pixel (.-width img-data) (.-height img-data)) 
-                                    (.-sampleRate audio-ctx))]
-    (doseq [ch-i (range num-channels)
-            :let [channel-buffer (.getChannelData audio-buffer ch-i)]]
-      (doseq [px-i (range (* (.-width img-data) (.-height img-data)))
-              :let [px-v (aget (.-data img-data) (* 4 px-i))
-                    au-v (- (* (/ px-v 255) 2) 1)]]
-        (.fill channel-buffer au-v 
-               (* px-i frames-per-pixel)
-               (* (inc px-i) frames-per-pixel))))
-    (js/console.log img-data)
-    (js/console.log audio-buffer)
-    audio-buffer))
-
 (defn img-data->audio
   [audio-ctx img-data]
   (let [audio-data (image-array-to-audio-array (.-data img-data))
