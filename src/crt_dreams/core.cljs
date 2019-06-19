@@ -34,23 +34,23 @@
 (defonce source-image (reagent/atom nil))
 (defonce crop-region (reagent/atom nil))
 
+(defonce audio-ctx (js/window.AudioContext.))
+(defonce buff-src (atom nil))
+
 (defn img-data->audio
   [audio-ctx img-data]
   (let [audio-data (image-array-to-audio-array (.-data img-data))
         audio-buffer (.createBuffer audio-ctx 2 (.-length audio-data) (.-sampleRate audio-ctx))]
     (.copyToChannel audio-buffer audio-data 0)
     (.copyToChannel audio-buffer audio-data 1)
-    (js/console.log audio-buffer)
     audio-buffer))
-
-(defonce audio-ctx (js/window.AudioContext.))
-(defonce buff-src (atom nil))
 
 (defn play-canvas
   [canvas]
   (let [img-data (.getImageData (.getContext canvas "2d") 0 0 (.-width canvas) (.-height canvas))
         audio-buffer (img-data->audio audio-ctx img-data)
         new-src (.createBufferSource audio-ctx)]
+    (set! (.-loop new-src) true)
     (set! (.-buffer new-src) audio-buffer)
     (.connect new-src (.-destination audio-ctx))
     (when @buff-src
@@ -101,6 +101,33 @@
                            (reset! source-image img)
                            (reset! crop-region {:x 0 :y 0 :width (.-width img) :height (.-height img)})))
     (set! (.-src img) src)))
+
+(defn store-source-audio
+  [e]
+  (let [file (aget e "target" "files" 0)
+        reader (js/FileReader.)]
+    (set! (.-onload reader) (fn [e]
+                              (let [raw-buf (.. e -target -result)]
+                                (.decodeAudioData audio-ctx raw-buf
+                                                  (fn [buf]              
+                                                    (let [edge-length (js/Math.floor (js/Math.sqrt (.-length buf)))
+                                                          audio-array (.subarray (.getChannelData buf 0) 0 (* edge-length edge-length))
+                                                          image-array (audio-array-to-image-array audio-array)
+                                                          image-data (js/ImageData. image-array edge-length edge-length)
+                                                          canvas (js/document.createElement "canvas")]
+                                                      (set! (.-width canvas) edge-length)
+                                                      (set! (.-height canvas) edge-length)
+                                                      (draw-img-data canvas image-data)                                     
+                                                      (reset! source-image canvas)
+                                                      (reset! crop-region {:x 0 :y 0 :width edge-length :height edge-length})))))))
+    (.readAsArrayBuffer reader file)))
+
+(defn store-source
+  [e]
+  (when (.startsWith (aget e "target" "files" 0 "type") "image/")
+    (store-source-img e))
+  (when (.startsWith (aget e "target" "files" 0 "type") "audio/")
+    (store-source-audio e)))
 
 (defn draw-rect
   [canvas rect]
@@ -173,8 +200,8 @@
                                    (not= 0 (* (:width @crop-region) (:height @crop-region))))
                           (->> @crop-region
                                (img->img-data @source-image)
-                              ;  (desaturate)
-                               (draw-img-data @dom-node))))]
+                               (draw-img-data @dom-node))
+                          (play-canvas @dom-node)))]
 
     (reagent/create-class
      {:component-did-update actual-render
@@ -195,7 +222,7 @@
 (defn app
   []
   [:div#app
-   [:input#upload {:type "file" :accept "image/*" :on-change store-source-img}]
+   [:input#upload {:type "file" :accept "image/*, audio/*" :on-change store-source}]
    [:div#windows-container
     [:div#crop-window
      [c-crop-canvas]]
