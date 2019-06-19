@@ -43,15 +43,20 @@
     (js/console.log audio-buffer)
     audio-buffer))
 
+(defonce audio-ctx (js/window.AudioContext.))
+(defonce buff-src (atom nil))
+
 (defn play-canvas
   [canvas]
   (let [img-data (.getImageData (.getContext canvas "2d") 0 0 (.-width canvas) (.-height canvas))
-        audio-ctx (js/window.AudioContext.)
         audio-buffer (img-data->audio audio-ctx img-data)
-        src (.createBufferSource audio-ctx)]
-    (set! (.-buffer src) audio-buffer)
-    (.connect src (.-destination audio-ctx))
-    (.start src)))
+        new-src (.createBufferSource audio-ctx)]
+    (set! (.-buffer new-src) audio-buffer)
+    (.connect new-src (.-destination audio-ctx))
+    (when @buff-src
+      (.stop @buff-src))
+    (.start new-src)
+    (reset! buff-src new-src)))
 
 (defn draw-img
   [canvas img]
@@ -107,11 +112,11 @@
 
 (defn get-cursor-position
   [canvas e]
-  (let [display-rect (.getBoundingClientRect canvas)
-        display-x (- (.-clientX e) (.-left display-rect))
-        display-y (- (.-clientY e) (.-top display-rect))
-        frac-x (/ display-x (.-width display-rect))
-        frac-y (/ display-y (.-height display-rect))
+  (let [elem-rect (.getBoundingClientRect canvas)
+        elem-x (- (.-clientX e) (.-left elem-rect))
+        elem-y (- (.-clientY e) (.-top elem-rect))
+        frac-x (/ elem-x (.-width elem-rect))
+        frac-y (/ elem-y (.-height elem-rect))
         img-x (* frac-x (.-width canvas))
         img-y (* frac-y (.-height canvas))]
     {:x (js/Math.round img-x)
