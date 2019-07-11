@@ -1,0 +1,4 @@
+{:main crt-dreams.core
+ :libs ["bitwise.js"]
+ :optimizations :advanced
+ :output-to "resources/public/js/main.js"}

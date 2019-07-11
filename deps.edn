@@ -5,4 +5,4 @@
  :paths ["src" "target" "resources"]
 
  :aliases {:build-dev {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :build-prod {:main-opts ["-m" "cljs.main" "--optimizations" "advanced" "-c" "crt-dreams.core"]}}}
+           :build-prod {:main-opts ["-m" "cljs.main" "-co" "prod.cljs.edn" "-c"]}}}
