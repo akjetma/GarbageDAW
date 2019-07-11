@@ -3,3 +3,4 @@ target
 .nrepl-port
 .DS_Store
 src/crt_dreams/pad.js
+.rebel_readline_history
