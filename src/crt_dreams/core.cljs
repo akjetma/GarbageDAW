@@ -1,17 +1,32 @@
 (ns crt-dreams.core
-  (:require [reagent.core :as reagent]))
+  (:require [reagent.core :as reagent]
+            [bitwise]))
 
 (enable-console-print!)
 
-(def MAX_UINT32 4294967295)
-(def U32_MOD 4278190080)
-(def U32_RANGE (- MAX_UINT32 U32_MOD))
+; (bitwise/interleaveBytes 255 184 76)
+; (bitwise/deInterleavePCM (bitwise/interleaveRGBA (js/parseInt "11111111101110000100110011111111" 2)))
+
+(defn int-to-bit-str 
+  [x]
+  (.toString x 2))
+
+(defn bit-str-to-int
+  [s]
+  (js/parseInt s 2))
+
+(def BIT_DEPTH 8)
+(def MAX_UINT32 (js/parseInt (.repeat "1" 32) 2))
+(def MAX_UINT24 (js/parseInt (.repeat "1" 24) 2))
+(def U32_MOD (- MAX_UINT32 MAX_UINT24))
+
+; algorithm a:
 
 (defn img-int->audio-float
   [x]
   (-> x
       (- U32_MOD)   ; ignore alpha channel
-      (/ U32_RANGE) ; divide by max 24-bit number (rgb8)
+      (/ MAX_UINT24) ; divide by max 24-bit number (rgb8)
       (* 2)         ; multiply by 2...
       (- 1)))       ; and shift down by one because audio floats E [-1, 1]
 
@@ -20,16 +35,51 @@
   (-> x
       (+ 1)
       (/ 2)
-      (* U32_RANGE)
+      (* MAX_UINT24)
       (+ U32_MOD)))
+
+; algorithm b:
+
+(defn deinterleave-pcm
+  [x]
+  (-> x
+      (+ 1)
+      (/ 2)
+      (* MAX_UINT24)
+      (bitwise/deInterleavePCM)))
+
+(defn interleave-rgb
+  [x]
+  (-> x
+      (bitwise/interleaveRGBA)
+      (/ MAX_UINT24)
+      (* 2)
+      (- 1)))
+
+; ---
+
+(def simple
+  {:img->audio img-int->audio-float
+   :audio->img audio-float->img-int})
+
+(def z-order-curve
+  {:img->audio interleave-rgb
+   :audio->img deinterleave-pcm})
+
+(def chosen-algorithm z-order-curve)
+;(def chosen-algorithm simple)
 
 (defn image-array-to-audio-array
   [image-array]
-  (js/Float32Array.from (js/Uint32Array. (.-buffer image-array)) img-int->audio-float))
+  (js/Float32Array.from (js/Uint32Array. (.-buffer image-array)) (:img->audio chosen-algorithm)))
 
 (defn audio-array-to-image-array
   [audio-array]
-  (js/Uint8ClampedArray. (.-buffer (js/Uint32Array.from audio-array audio-float->img-int))))
+  ; (js/console.log audio-array)
+  (let [res (js/Uint8ClampedArray. (.-buffer (js/Uint32Array.from audio-array (:audio->img chosen-algorithm))))]
+    ; (js/console.log res)
+    ; (js/console.log (image-array-to-audio-array res))
+    res))
 
 (defonce source-image (reagent/atom nil))
 (defonce crop-region (reagent/atom nil))
