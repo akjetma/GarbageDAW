@@ -1,4 +1,4 @@
-(ns crt-dreams.core
+(ns garbagedaw.core
   (:require [reagent.core :as reagent]
             [bitwise]))
 

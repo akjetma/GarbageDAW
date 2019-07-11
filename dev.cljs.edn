@@ -1,2 +1,2 @@
-{:main crt-dreams.core
+{:main garbagedaw.core
  :libs ["bitwise.js"]}
