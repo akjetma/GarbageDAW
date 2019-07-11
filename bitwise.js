@@ -84,12 +84,14 @@ bitwise.interleaveRGBA = function(rgba) {
     var result = 0;
 
     for (var i = 0; i < 8; i++) {
+        // result <<= 1;
+        // result |= bitwise.getBit(rgba, 31 - i); //a
         result <<= 1;
-        result |= bitwise.getBit(rgba, 31 - i); //r
+        result |= bitwise.getBit(rgba, 23 - i); //b
         result <<= 1;
-        result |= bitwise.getBit(rgba, 23 - i); //g
+        result |= bitwise.getBit(rgba, 15 - i); //g
         result <<= 1;
-        result |= bitwise.getBit(rgba, 15 - i); //b
+        result |= bitwise.getBit(rgba, 7 - i);  //r
     }
 
     // console.log(rgba, rgba.toString(2), result, result.toString(2));
@@ -103,15 +105,15 @@ bitwise.deInterleavePCM = function(pcm24) {
     var a = 255;
 
     for (var i = 0; i < 24; i+=3) {
-        r <<= 1;
-        r |= bitwise.getBit(pcm24, 23 - i);
+        b <<= 1;
+        b |= bitwise.getBit(pcm24, 23 - i);
         g <<= 1;
         g |= bitwise.getBit(pcm24, 22 - i);
-        b <<= 1;
-        b |= bitwise.getBit(pcm24, 21 - i);
+        r <<= 1;
+        r |= bitwise.getBit(pcm24, 21 - i);
     }
 
-    var resulta = new Uint8ClampedArray([a, b, g, r]); // wtf?
+    var resulta = new Uint8ClampedArray([r,g,b,a]); // wtf?
     var resultb = new Uint32Array(resulta.buffer);
 
     // console.log(r, g, b, a, resulta, resultb, resultb[0], resultb[0].toString(2));
